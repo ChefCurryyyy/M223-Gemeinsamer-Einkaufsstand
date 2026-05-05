@@ -9,9 +9,11 @@ using CoShop.Models;
 
 namespace CoShop.Controllers;
 
+/// <summary>Verwaltung von Einkaufslisten und deren Mitglieder.</summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[Produces("application/json")]
 public class ShoppingListsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -23,7 +25,12 @@ public class ShoppingListsController : ControllerBase
         _hub = hub;
     }
 
+    /// <summary>Alle eigenen und geteilten Listen des eingeloggten Benutzers abrufen.</summary>
+    /// <response code="200">Liste aller ShoppingListSummaryDto.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<ShoppingListSummaryDto>), 200)]
+    [ProducesResponseType(401)]
     public async Task<ActionResult<IEnumerable<ShoppingListSummaryDto>>> GetMyLists()
     {
         var userId = User.GetUserId();
@@ -35,7 +42,17 @@ public class ShoppingListsController : ControllerBase
         return Ok(lists);
     }
 
+    /// <summary>Details einer Liste abrufen (Artikel + Mitglieder).</summary>
+    /// <param name="id">ID der Einkaufsliste.</param>
+    /// <response code="200">ShoppingListDetailDto mit allen Items und Membern.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
+    /// <response code="403">Benutzer ist kein Mitglied dieser Liste.</response>
+    /// <response code="404">Liste nicht gefunden.</response>
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ShoppingListDetailDto), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<ActionResult<ShoppingListDetailDto>> GetList(int id)
     {
         var userId = User.GetUserId();
@@ -50,7 +67,15 @@ public class ShoppingListsController : ControllerBase
         return Ok(MapDetail(list));
     }
 
+    /// <summary>Neue Einkaufsliste erstellen.</summary>
+    /// <param name="req">Titel der neuen Liste.</param>
+    /// <response code="201">Liste erfolgreich erstellt.</response>
+    /// <response code="400">Validierungsfehler (z.B. Titel leer).</response>
+    /// <response code="401">Nicht authentifiziert.</response>
     [HttpPost]
+    [ProducesResponseType(typeof(ShoppingListSummaryDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
     public async Task<ActionResult<ShoppingListSummaryDto>> CreateList([FromBody] CreateListRequest req)
     {
         var userId = User.GetUserId();
@@ -61,7 +86,20 @@ public class ShoppingListsController : ControllerBase
         return CreatedAtAction(nameof(GetList), new { id = list.Id }, dto);
     }
 
+    /// <summary>Titel einer Liste ändern (nur Ersteller).</summary>
+    /// <param name="id">ID der Liste.</param>
+    /// <param name="req">Neuer Titel.</param>
+    /// <response code="204">Erfolgreich umbenannt.</response>
+    /// <response code="400">Validierungsfehler.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
+    /// <response code="403">Nur der Ersteller darf umbenennen.</response>
+    /// <response code="404">Liste nicht gefunden.</response>
     [HttpPut("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateList(int id, [FromBody] UpdateListRequest req)
     {
         var userId = User.GetUserId();
@@ -78,7 +116,17 @@ public class ShoppingListsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Eine Liste löschen inkl. aller Artikel (nur Ersteller).</summary>
+    /// <param name="id">ID der Liste.</param>
+    /// <response code="204">Erfolgreich gelöscht.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
+    /// <response code="403">Nur der Ersteller darf löschen.</response>
+    /// <response code="404">Liste nicht gefunden.</response>
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> DeleteList(int id)
     {
         var userId = User.GetUserId();
@@ -95,7 +143,22 @@ public class ShoppingListsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Einen Benutzer per Username zu einer Liste einladen (nur Ersteller).</summary>
+    /// <param name="id">ID der Liste.</param>
+    /// <param name="req">Username des einzuladenden Benutzers.</param>
+    /// <response code="200">Mitglied erfolgreich hinzugefügt.</response>
+    /// <response code="400">Ersteller kann sich nicht selbst einladen.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
+    /// <response code="403">Nur der Ersteller darf einladen.</response>
+    /// <response code="404">Liste oder Benutzer nicht gefunden.</response>
+    /// <response code="409">Benutzer ist bereits Mitglied.</response>
     [HttpPost("{id:int}/members")]
+    [ProducesResponseType(typeof(MemberDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(409)]
     public async Task<ActionResult<MemberDto>> InviteMember(int id, [FromBody] InviteMemberRequest req)
     {
         var userId = User.GetUserId();
@@ -120,7 +183,18 @@ public class ShoppingListsController : ControllerBase
         return Ok(new MemberDto(target.Id, target.Username, member.JoinedAt));
     }
 
+    /// <summary>Mitglied aus einer Liste entfernen (Ersteller entfernt andere, Mitglied verlässt selbst).</summary>
+    /// <param name="id">ID der Liste.</param>
+    /// <param name="memberId">UserId des zu entfernenden Mitglieds.</param>
+    /// <response code="204">Mitglied erfolgreich entfernt.</response>
+    /// <response code="401">Nicht authentifiziert.</response>
+    /// <response code="403">Keine Berechtigung.</response>
+    /// <response code="404">Liste oder Mitglied nicht gefunden.</response>
     [HttpDelete("{id:int}/members/{memberId:int}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> RemoveMember(int id, int memberId)
     {
         var userId = User.GetUserId();
