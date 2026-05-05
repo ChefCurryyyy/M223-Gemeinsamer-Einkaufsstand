@@ -14,9 +14,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ──────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ── Repositories (DI) ─────────────────────────────────────────────────────────
+// ── Repositories ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IUserRepository,         UserRepository>();
 builder.Services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
 builder.Services.AddScoped<IItemRepository,         ItemRepository>();
@@ -36,8 +36,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience            = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
-
-        // SignalR passes JWT as query param (WebSocket can't set headers)
         o.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
@@ -52,15 +50,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-
-// ── SignalR ───────────────────────────────────────────────────────────────────
 builder.Services.AddSignalR();
-
-// ── App services ──────────────────────────────────────────────────────────────
 builder.Services.AddScoped<IJwtService, JwtService>();
 
 // ── Controllers + Validation ──────────────────────────────────────────────────
-// Returns structured validation errors instead of the default 400 HTML page
 builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(o =>
     {
@@ -70,8 +63,7 @@ builder.Services.AddControllers()
                 .Where(e => e.Value?.Errors.Count > 0)
                 .ToDictionary(
                     kvp => kvp.Key,
-                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
-                );
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
             return new BadRequestObjectResult(new { message = "Validierungsfehler.", errors });
         };
     });
@@ -83,7 +75,7 @@ builder.Services.AddCors(o => o.AddPolicy("FrontendPolicy", p =>
         ?? ["http://localhost:4200"])
      .AllowAnyHeader()
      .AllowAnyMethod()
-     .AllowCredentials())); // Required for SignalR
+     .AllowCredentials()));
 
 // ── Swagger ───────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
@@ -96,18 +88,15 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Collaborative Shopping List — Multi-User REST API mit JWT-Auth und SignalR Echtzeit-Sync.",
         Contact     = new OpenApiContact { Name = "Co-Shop Team" }
     });
-
-    // JWT Bearer scheme für Swagger UI
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Name        = "Authorization",
-        Description = "JWT Token im Format: **Bearer {token}**",
-        Type        = SecuritySchemeType.Http,
-        Scheme      = "Bearer",
+        Name         = "Authorization",
+        Description  = "JWT Token im Format: **Bearer {token}**",
+        Type         = SecuritySchemeType.Http,
+        Scheme       = "Bearer",
         BearerFormat = "JWT",
-        In          = ParameterLocation.Header
+        In           = ParameterLocation.Header
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {{
         new OpenApiSecurityScheme
@@ -116,8 +105,6 @@ builder.Services.AddSwaggerGen(c =>
         },
         Array.Empty<string>()
     }});
-
-    // XML-Kommentare aus dem Build einlesen (/// summary tags)
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
@@ -126,13 +113,10 @@ builder.Services.AddSwaggerGen(c =>
 // ─────────────────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-// ── Migrate & seed ────────────────────────────────────────────────────────────
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    await DbSeeder.SeedAsync(db);
-}
+// ── Migrate & seed with retry ─────────────────────────────────────────────────
+// SQL Server inside Docker can take a few extra seconds after the healthcheck
+// passes before it accepts schema changes. We retry up to 10 times.
+await MigrateWithRetryAsync(app);
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
@@ -146,7 +130,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
+// Always expose Swagger so it's reachable in the Docker production setup too
+if (!app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Co-Shop API v1"));
+}
 
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();
@@ -155,3 +144,48 @@ app.MapControllers();
 app.MapHub<ShoppingHub>("/hubs/shopping");
 
 app.Run();
+
+// ── Helper: migrate with exponential backoff ──────────────────────────────────
+static async Task MigrateWithRetryAsync(WebApplication app)
+{
+    const int maxRetries = 10;
+    var delay = TimeSpan.FromSeconds(3);
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db     = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var logger = scope.ServiceProvider
+                .GetRequiredService<ILogger<AppDbContext>>();
+
+            logger.LogInformation("Migration attempt {Attempt}/{Max}...", attempt, maxRetries);
+
+            // Apply any pending migrations (creates tables if they don't exist)
+            await db.Database.MigrateAsync();
+
+            // Seed test data
+            await DbSeeder.SeedAsync(db);
+
+            logger.LogInformation("Database ready.");
+            return;
+        }
+        catch (Exception ex) when (attempt < maxRetries)
+        {
+            var logger = app.Services.GetRequiredService<ILogger<AppDbContext>>();
+            logger.LogWarning(
+                "Database not ready yet (attempt {Attempt}/{Max}): {Message}. Retrying in {Delay}s...",
+                attempt, maxRetries, ex.Message, delay.TotalSeconds);
+
+            await Task.Delay(delay);
+            delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 1.5, 15)); // cap at 15s
+        }
+    }
+
+    // Final attempt — let it throw so the container exits with error code
+    using var finalScope = app.Services.CreateScope();
+    var finalDb = finalScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await finalDb.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(finalDb);
+}

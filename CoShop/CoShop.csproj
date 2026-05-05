@@ -3,17 +3,16 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- Generates XML file for Swagger documentation from /// comments -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Suppress warnings for undocumented members -->
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"  Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"  Version="8.0.0" />
+    <!-- SQL Server provider replaces SQLite -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design"    Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR"          Version="1.1.0" />
-    <PackageReference Include="BCrypt.Net-Next"                       Version="4.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore"                Version="6.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR"            Version="1.1.0" />
+    <PackageReference Include="BCrypt.Net-Next"                         Version="4.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore"                  Version="6.5.0" />
   </ItemGroup>
 </Project>

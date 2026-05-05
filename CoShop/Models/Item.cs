@@ -10,8 +10,11 @@ public class Item
     public int ListId { get; set; }
     public int LastModifiedByUserId { get; set; }
 
-    // Optimistic concurrency token (SQLite-compatible)
-    public long Version { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    // SQL Server native optimistic concurrency — auto-incremented by the DB on every UPDATE.
+    // EF Core maps this to a rowversion / timestamp column.
+    // No manual setting needed: the DB handles it, unlike the SQLite long workaround.
+    [System.ComponentModel.DataAnnotations.Timestamp]
+    public byte[] RowVersion { get; set; } = [];
 
     // Navigation properties
     public ShoppingList List { get; set; } = null!;

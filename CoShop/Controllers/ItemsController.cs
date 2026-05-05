@@ -33,7 +33,6 @@ public class ItemsController : ControllerBase
         {
             Name = req.Name.Trim(), Amount = req.Amount, Unit = req.Unit.Trim(),
             ListId = listId, LastModifiedByUserId = userId,
-            Version = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         };
 
         _db.Items.Add(item);
@@ -70,7 +69,6 @@ public class ItemsController : ControllerBase
 
         item.Name = req.Name.Trim(); item.Amount = req.Amount; item.Unit = req.Unit.Trim();
         item.LastModifiedByUserId = userId;
-        item.Version = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         await _db.SaveChangesAsync();
         await _db.Entry(item).Reference(i => i.LastModifiedByUser).LoadAsync();
@@ -98,7 +96,6 @@ public class ItemsController : ControllerBase
 
             item.IsBought = req.IsBought;
             item.LastModifiedByUserId = userId;
-            item.Version = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
