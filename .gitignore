@@ -1,0 +1,27 @@
+# .NET
+CoShop/bin/
+CoShop/obj/
+CoShop/*.db
+CoShop/*.db-shm
+CoShop/*.db-wal
+CoShop/*.xml
+
+# Angular
+coshop-frontend/node_modules/
+coshop-frontend/dist/
+coshop-frontend/.angular/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+.idea/
+
+# Environment secrets
+.env
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db

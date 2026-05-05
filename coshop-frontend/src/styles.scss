@@ -1,0 +1,76 @@
+@use '@angular/material' as mat;
+
+$primary: mat.define-palette(mat.$teal-palette, 600, 300, 800);
+$accent:  mat.define-palette(mat.$orange-palette, 500);
+$warn:    mat.define-palette(mat.$red-palette);
+
+$theme: mat.define-light-theme((
+        color: (primary: $primary, accent: $accent, warn: $warn),
+        typography: mat.define-typography-config($font-family: '"DM Sans", sans-serif'),
+        density: 0,
+));
+
+@include mat.all-component-themes($theme);
+
+:root {
+  --primary:       #00796b;
+  --primary-light: #e0f2f1;
+  --accent:        #f57c00;
+  --bg:            #f4f6f5;
+  --surface:       #ffffff;
+  --text:          #1a2421;
+  --muted:         #607d8b;
+  --border:        #dde4e2;
+  --radius:        12px;
+  --shadow-sm:     0 1px 3px rgba(0,0,0,.07), 0 2px 8px rgba(0,0,0,.04);
+  --shadow-md:     0 4px 20px rgba(0,0,0,.10), 0 2px 6px rgba(0,0,0,.05);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { height: 100%; }
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+// ── Page layout ───────────────────────────────────────────────────────────────
+.page-container {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 32px 20px 56px;
+}
+
+// ── Material tweaks ───────────────────────────────────────────────────────────
+.mat-mdc-card {
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.mat-mdc-raised-button { border-radius: 8px !important; }
+
+// Dialog panels — just cosmetic rounding, overlay positioning handled by CDK
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: var(--radius) !important;
+}
+
+// ── Snackbar colors ───────────────────────────────────────────────────────────
+.snack-success { --mdc-snackbar-container-color: #2e7d32; }
+.snack-error   { --mdc-snackbar-container-color: #c62828; }
+.snack-info    { --mdc-snackbar-container-color: #1565c0; }
+
+// ── Realtime banner ───────────────────────────────────────────────────────────
+.rt-banner {
+  display: flex; align-items: center; gap: 8px;
+  background: #e3f2fd; color: #1565c0;
+  border-radius: 8px; padding: 8px 16px;
+  margin-bottom: 16px; font-size: .875rem;
+  animation: fadeIn .3s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+  # ── .NET Backend ─────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./CoShop
+      dockerfile: Dockerfile
+    container_name: coshop-backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/coshop.db
+      - Jwt__Key=${JWT_KEY:-CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_MIN_32_CHARS}
+      - Jwt__Issuer=CoShop
+      - Jwt__Audience=CoShopUsers
+      - Cors__AllowedOrigins__0=http://localhost
+    volumes:
+      # Persist SQLite database outside the container
+      - coshop-db:/app/data
+    ports:
+      - "5000:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/swagger/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Angular Frontend ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./coshop-frontend
+      dockerfile: Dockerfile
+    container_name: coshop-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  coshop-db:

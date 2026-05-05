@@ -1,0 +1,6 @@
+@CoShop_HostAddress = http://localhost:5173
+
+GET {{CoShop_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
