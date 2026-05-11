@@ -1,3 +1,4 @@
+// KI-generiert (Claude AI) — HTTP-Lasttests für Multi-User-Verhalten (parallele Requests, Konfliktbehandlung, Antwortzeiten)
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Json;

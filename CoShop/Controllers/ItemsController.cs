@@ -119,6 +119,7 @@ public class ItemsController : ControllerBase
         return Ok(MapItem(item));
     }
 
+    // KI-generiert — Transaktion + optimistisches Locking; DbUpdateConcurrencyException wird als 409 Conflict zurückgegeben
     /// <summary>
     /// Artikel als gekauft/nicht gekauft markieren.
     /// Verwendet eine Transaktion mit optimistischer Nebenläufigkeitskontrolle,

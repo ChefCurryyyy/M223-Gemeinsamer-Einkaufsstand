@@ -1,3 +1,4 @@
+// KI-generiert (Claude AI) — parallele Unit-Tests für optimistisches Locking (RowVersion / DbUpdateConcurrencyException)
 using Microsoft.EntityFrameworkCore;
 using CoShop.Data;
 using CoShop.Models;

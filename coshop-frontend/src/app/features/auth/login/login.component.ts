@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -16,7 +16,7 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [
     ReactiveFormsModule, RouterLink,
     MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule
+    MatButtonModule, MatIconModule, MatProgressSpinnerModule
   ],
   template: `
     <div class="auth-page">
@@ -64,60 +64,7 @@ import { AuthService } from '../../../core/services/auth.service';
       </mat-card>
     </div>
   `,
-  styles: [`
-    .auth-page {
-      min-height: calc(100vh - 64px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 16px;
-      background: var(--bg);
-    }
-    .auth-card {
-      width: 100%;
-      max-width: 420px;
-      padding: 40px 36px;
-    }
-    .auth-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-    .auth-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: var(--primary);
-    }
-    .auth-header h1 {
-      font-family: 'DM Serif Display', serif;
-      font-size: 2rem;
-      margin: 8px 0 4px;
-      color: var(--text);
-    }
-    .auth-header p {
-      color: var(--muted);
-      margin: 0;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .submit-btn {
-      height: 48px;
-      font-size: 1rem;
-      margin-top: 8px;
-      border-radius: 8px !important;
-    }
-    .auth-link {
-      text-align: center;
-      margin-top: 20px;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-    .auth-link a { color: var(--primary); text-decoration: none; font-weight: 500; }
-    .auth-link a:hover { text-decoration: underline; }
-  `]
+  styles: []
 })
 export class LoginComponent {
   private auth = inject(AuthService);

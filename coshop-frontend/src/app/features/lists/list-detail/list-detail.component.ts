@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
+// KI-generiert (Claude AI) — grösste Komponente (~480 Zeilen): Echtzeit-SignalR-Subscriptions, Optimistic-Locking-Feedback, lokales State-Management
+import { Component, inject, OnInit, signal, computed, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -215,14 +216,6 @@ import { ItemFormDialogComponent, ItemFormResult } from '../../items/item-form/i
     </div>
   `,
   styles: [`
-    .rt-banner {
-      display:flex; align-items:center; gap:8px;
-      background:#e3f2fd; color:#1565c0; border-radius:8px;
-      padding:8px 16px; margin-bottom:16px;
-      font-size:.875rem; animation: fadeIn .3s ease;
-    }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
-
     .detail-header { display:flex; align-items:center; gap:8px; margin-bottom:20px; }
     .header-info h2 { margin:0; font-family:'DM Serif Display',serif; font-size:1.6rem; }
     .owner-chip { display:flex;align-items:center;gap:3px;font-size:.8rem;color:var(--muted); }
@@ -265,7 +258,7 @@ import { ItemFormDialogComponent, ItemFormResult } from '../../items/item-form/i
     .member-role.owner { color:var(--primary); font-weight:600; }
   `]
 })
-export class ListDetailComponent implements OnInit, OnDestroy {
+export class ListDetailComponent implements OnInit {
   private route  = inject(ActivatedRoute);
   private listSvc = inject(ListService);
   private itemSvc = inject(ItemService);
@@ -275,7 +268,7 @@ export class ListDetailComponent implements OnInit, OnDestroy {
   private snack  = inject(MatSnackBar);
   router = inject(Router);
 
-  private destroy$ = new Subject<void>();
+  private destroyRef = inject(DestroyRef);
 
   list        = signal<ShoppingListDetail | null>(null);
   loading     = signal(true);
@@ -299,12 +292,7 @@ export class ListDetailComponent implements OnInit, OnDestroy {
     this.load();
     this.subscribeToRealtime();
     await this.hub.connectToList(this.listId);
-  }
-
-  async ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
-    await this.hub.leaveList(this.listId);
+    this.destroyRef.onDestroy(() => this.hub.leaveList(this.listId));
   }
 
   load() {
@@ -315,11 +303,12 @@ export class ListDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // KI-generiert — 8 typisierte SignalR-Subscriptions mit takeUntilDestroyed und skipSelf-Filter
   // ── Realtime handlers ─────────────────────────────────────────────────────
   private subscribeToRealtime() {
     const skipSelf = (actorId: number) => actorId !== this.myId;
 
-    this.hub.itemCreated$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.itemCreated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         this.addItemLocally({ id: e.itemId, name: e.name, amount: e.amount, unit: e.unit,
           isBought: false, listId: e.listId, lastModifiedByUserId: e.actorUserId,
@@ -328,21 +317,21 @@ export class ListDetailComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.hub.itemUpdated$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.itemUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         this.updateItemLocally(e.itemId, { name: e.name, amount: e.amount, unit: e.unit });
         this.flash(`${e.actorUsername} hat "${e.name}" bearbeitet`);
       }
     });
 
-    this.hub.itemDeleted$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.itemDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         this.removeItemLocally(e.itemId);
         this.flash('Ein Artikel wurde gelöscht');
       }
     });
 
-    this.hub.itemBought$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.itemBought$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         // Lock the item briefly to prevent double-toggle race
         this.lockItem(e.itemId);
@@ -352,28 +341,28 @@ export class ListDetailComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.hub.listRenamed$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.listRenamed$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         this.list.update(l => l ? { ...l, title: e.newTitle } : l);
         this.flash(`Liste wurde umbenannt zu "${e.newTitle}"`);
       }
     });
 
-    this.hub.listDeleted$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.listDeleted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.actorUserId)) {
         this.snack.open('Diese Liste wurde vom Ersteller gelöscht.', 'OK', { duration: 5000, panelClass: 'snack-info' });
         this.router.navigate(['/dashboard']);
       }
     });
 
-    this.hub.memberAdded$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.memberAdded$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (skipSelf(e.userId)) {
         this.list.update(l => l ? { ...l, members: [...l.members, { userId: e.userId, username: e.username, joinedAt: new Date().toISOString() }] } : l);
         this.flash(`${e.username} ist der Liste beigetreten`);
       }
     });
 
-    this.hub.memberRemoved$.pipe(takeUntil(this.destroy$)).subscribe(e => {
+    this.hub.memberRemoved$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(e => {
       if (e.userId === this.myId) {
         this.snack.open('Du wurdest von der Liste entfernt.', 'OK', { duration: 5000, panelClass: 'snack-info' });
         this.router.navigate(['/dashboard']);
@@ -407,7 +396,7 @@ export class ListDetailComponent implements OnInit, OnDestroy {
     this.lockedItemIds.update(s => { const n = new Set(s); n.delete(id); return n; });
   }
 
-  private rtTimer: any;
+  private rtTimer: ReturnType<typeof setTimeout> | undefined;
   private flash(msg: string) {
     this.realtimeMsg.set(msg);
     clearTimeout(this.rtTimer);

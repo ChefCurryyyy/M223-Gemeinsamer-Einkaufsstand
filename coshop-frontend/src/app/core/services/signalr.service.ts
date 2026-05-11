@@ -1,3 +1,4 @@
+// KI-generiert (Claude AI) — SignalR-Service mit typisiertem Event-Routing, automatischem Reconnect und Gruppen-Management
 import { Injectable, inject, OnDestroy } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { Subject } from 'rxjs';

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ShoppingListMember> ShoppingListMembers => Set<ShoppingListMember>();
 
+    // KI-generiert — komplexe EF-Core-Konfiguration: Composite-PK, Cascade-Regeln, SQL-Server-spezifische Einschränkungen
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ── User ──────────────────────────────────────────────────────────────

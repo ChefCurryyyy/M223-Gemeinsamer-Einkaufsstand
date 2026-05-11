@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// KI-generiert (Claude AI) — SignalR-Hub mit JWT-Authentifizierung und Mitgliedschaftsprüfung vor Gruppenbeitritt
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using CoShop.Data;
