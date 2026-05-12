@@ -15,6 +15,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"       Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
+    <PackageReference Include="NBomber"                                Version="5.*"   />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CoShop\CoShop.csproj" />
