@@ -7,7 +7,7 @@ using NBomber.CSharp;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace CoShop.Tests;
+namespace CoShop.LoadTests;
 
 /// <summary>
 /// Lasttests für Multi-User-Fähigkeit (Teilauftrag 6b).

@@ -7,6 +7,8 @@ CoShop/*.db-wal
 CoShop/*.xml
 CoShop.Tests/bin/
 CoShop.Tests/obj/
+CoShop.LoadTests/bin/
+CoShop.LoadTests/obj/
 
 # Angular
 coshop-frontend/node_modules/
